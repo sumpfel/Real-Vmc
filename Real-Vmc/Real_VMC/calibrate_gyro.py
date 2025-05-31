@@ -9,8 +9,7 @@ class gyro_calibrator:
 
     def calculate_bias(self):
         if not self.bias_samples:
-            print("No samples collected for bias calculation.")
-            return
+            raise ValueError("No samples collected for bias calculation. Call update_calibration first.")
 
         num_samples = len(self.bias_samples)
         self.gyro_bias = [
@@ -20,8 +19,7 @@ class gyro_calibrator:
 
     def calculate_noise(self):
         if not self.bias_samples:
-            print("No samples collected for noise calculation.")
-            return
+            raise ValueError("No samples collected for noise calculation. Call update_calibration first.")
 
         num_samples = len(self.bias_samples)
         means = self.gyro_bias
@@ -31,9 +29,15 @@ class gyro_calibrator:
         ]
 
     def print_calibration(self):
-        print(f"Noise: {self.gyro_noise}")
-        print(f"Bias: {self.gyro_bias}")
+        print(f"Gyroscope Noise: {self.gyro_noise}")
+        print(f"Gyroscope Bias: {self.gyro_bias}")
 
     def clear_samples(self):
         self.bias_samples = []
         print("Sample data cleared.")
+
+    def apply_calibration(self, acc):
+        if not self.gyro_bias:
+            raise ValueError("Calibration has not been calculated. Call calculate_bias first.")
+
+        return [x - y for x, y in zip(acc, self.gyro_bias)]
