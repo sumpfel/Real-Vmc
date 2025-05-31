@@ -1,3 +1,5 @@
+import numpy as np
+
 class accelerometer_calibrator:
     acc_samples=[]
     def __init__(self):
@@ -22,9 +24,14 @@ class accelerometer_calibrator:
 
     def apply_calibration(self, acc):
         if not self.offsets:
-            raise ValueError("Calibration has not been calculated. Call calculate_accelerometer first.")
+            raise ValueError("Calibration has not been calculated. Call calculate_offsets first.")
 
-        return [x + y for x, y in zip(acc, self.offsets)]
+        # Use numpy to add offsets
+        acc_np = np.array(acc)
+        offsets_np = np.array(self.offsets)
+        calibrated = acc_np + offsets_np
+
+        return calibrated
 
     def print_calibration(self):
         print(f"Accelerometer Offsets: {self.offsets}")

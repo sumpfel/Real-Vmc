@@ -8,7 +8,7 @@ from adafruit_lsm6ds import Rate as LSM6DSOX_Rate
 from adafruit_lis3mdl import LIS3MDL
 from adafruit_lis3mdl import Rate as LIS3MDL_Rate
 
-from Real_VMC import calibrate_magnetometer, calibrate_gyro, calibrate_accelerometer
+from Real_VMC import calibrate_magnetometer, calibrate_gyro, calibrate_accelerometer, sensor_fusion, visualizer
 
 def main():
     # Initialize I2C
@@ -48,6 +48,7 @@ def main():
     gyro_calibrator.calculate_bias()
 
     x=0
+    sensor_fusing=sensor_fusion.SensorFusion()
     print("start reading data")
     start_time=time.time()
     try:
@@ -65,6 +66,8 @@ def main():
             accel = acc_calibrator.apply_calibration(lsm6dsox.acceleration)
             gyro = gyro_calibrator.apply_calibration(lsm6dsox.gyro)
 
+            euler_angles = visualizer.quat_to_euler(sensor_fusing.update(gyro,accel,magnetic))
+            print("Euler angles (degrees): Roll {:.2f}, Pitch {:.2f}, Yaw {:.2f}".format(*euler_angles))
 
             # Print sensor readings
             #print(f"Acceleration (m/s^2): X={accel[0]:.2f}, Y={accel[1]:.2f}, Z={accel[2]:.2f}")

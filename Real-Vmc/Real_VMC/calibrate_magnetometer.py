@@ -1,3 +1,5 @@
+import numpy as np
+
 class magnetometer_calibrator():
     offsets = []
     scales = []
@@ -29,5 +31,9 @@ class magnetometer_calibrator():
         if not self.offsets or not self.scales:
             raise ValueError("Calibration has not been calculated. Call calculate_offsets first.")
 
-        calibrated_mag = [(x-y)/z for x,y,z in zip(mag, self.offsets, self.scales)]
+        mag_np = np.array(mag)
+        offsets_np = np.array(self.offsets)
+        scales_np = np.array(self.scales)
+
+        calibrated_mag = (mag_np - offsets_np) / scales_np
         return calibrated_mag

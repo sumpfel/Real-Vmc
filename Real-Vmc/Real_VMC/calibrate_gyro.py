@@ -1,3 +1,5 @@
+import numpy as np
+
 class gyro_calibrator:
     def __init__(self):
         self.gyro_bias = [0.0] * 3
@@ -40,4 +42,8 @@ class gyro_calibrator:
         if not self.gyro_bias:
             raise ValueError("Calibration has not been calculated. Call calculate_bias first.")
 
-        return [x - y for x, y in zip(acc, self.gyro_bias)]
+        acc_np = np.array(acc)
+        bias_np = np.array(self.gyro_bias)
+
+        calibrated = acc_np - bias_np
+        return calibrated
