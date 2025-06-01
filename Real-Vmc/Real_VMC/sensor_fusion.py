@@ -1,17 +1,22 @@
 import numpy as np
 from ahrs.filters import Madgwick
+import time
 
 class SensorFusion:
-    def __init__(self, sample_rate=10):#, dof=9
-        #assert dof in (6, 9), "DOF must be 6 or 9"
+    def __init__(self):
 
-        self.sample_rate = sample_rate
-        #self.dof = dof
-
-        self.filter = Madgwick(frequency=sample_rate)
+        self.filter = Madgwick()
         self.q = np.array([1.0, 0.0, 0.0, 0.0])
+        self.last_time = time.time()
 
     def update(self, gyro, acc, mag=None):
+        current_time = time.time()
+        delta_time = current_time - self.last_time
+        self.last_time = current_time
+
+        if delta_time > 0:  # Avoid division by zero
+            self.filter.frequency = 1.0 / delta_time
+
         try:
             self.q = self.filter.updateMARG(self.q, gyr=gyro, acc=acc, mag=mag)
         except:

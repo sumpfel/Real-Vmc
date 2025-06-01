@@ -52,14 +52,14 @@ def main():
             gyro = gyro_calibrator.apply_calibration(lsm6dsox.gyro)
 
             # Read data from LIS3MDL
-            if x + 100 % 100==0:
+            if x + 10 % 10==0:
                 magnetic = lis3mdl.magnetic
                 magnetic = mag_calibrator.apply_calibration(magnetic)
-                euler_angles = visualizer.quat_to_euler(sensor_fusing.update(gyro,accel,magnetic))
+                q = sensor_fusing.update(gyro,accel,magnetic)
             else:
-                euler_angles = visualizer.quat_to_euler(sensor_fusing.update(gyro, accel))
+                q= sensor_fusing.update(gyro, accel)
 
-
+            euler_angles = visualizer.quat_to_euler(q)
             print("Euler angles (degrees): Roll {:.2f}, Pitch {:.2f}, Yaw {:.2f}".format(*euler_angles))
 
             # Print sensor readings
