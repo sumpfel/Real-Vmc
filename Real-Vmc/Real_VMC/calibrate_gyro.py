@@ -1,10 +1,40 @@
 import numpy as np
+import csv
 
-class gyro_calibrator:
+class GyroCalibrator:
     def __init__(self):
         self.gyro_bias = [0.0] * 3
         self.gyro_noise = [0.0] * 3
         self.bias_samples = []
+
+    def load(self,file):
+        with open(file,'r') as f:
+            rows = csv.reader(f)
+            for row in rows:
+                if row[0]=="gyro":
+                    self.gyro_bias[0]=float(row[1])
+                    self.gyro_bias[1]=float(row[2])
+                    self.gyro_bias[2]=float(row[3])
+                    self.gyro_bias[0]=float(row[4])
+                    self.gyro_noise[1]=float(row[5])
+                    self.gyro_noise[2]=float(row[6])
+
+    def store(self,file):
+        rows = []
+        with open(file,'r') as f:
+            rows = list(csv.reader(f))
+
+        x=0
+        for row in rows:
+            if row[0]=="gyro":
+                rows[x]=["gyro"]+self.gyro_bias+self.gyro_noise
+                break
+            x+=1
+        if x == len(rows):
+            rows.append(["gyro"]+self.gyro_bias+self.gyro_noise)
+
+        with open(file,'w', newline="") as f:
+            csv.writer(f).writerows(rows)
 
     def update_calibration(self, gyro):
         self.bias_samples.append(gyro)

@@ -33,19 +33,13 @@ def main():
         return
 
 
-    mag_calibrator=calibrate_magnetometer.magnetometer_calibrator()
-    gyro_calibrator=calibrate_gyro.gyro_calibrator()
-    acc_calibrator=calibrate_accelerometer.accelerometer_calibrator()
+    mag_calibrator=calibrate_magnetometer.MagnetometerCalibrator()
+    gyro_calibrator=calibrate_gyro.GyroCalibrator()
+    acc_calibrator=calibrate_accelerometer.AccelerometerCalibrator()
 
-    mag_calibrator.update_calibration([x + .1 for x in lis3mdl.magnetic])
-
-    for i in range(100):
-        acc_calibrator.update_calibration(lsm6dsox.acceleration)
-        gyro_calibrator.update_calibration(lsm6dsox.gyro)
-        time.sleep(0.01)
-
-    acc_calibrator.calculate_offsets()
-    gyro_calibrator.calculate_bias()
+    mag_calibrator.load("sensor1.csv")
+    gyro_calibrator.load("sensor1.csv")
+    acc_calibrator.load("sensor1.csv")
 
     x=0
     sensor_fusing=sensor_fusion.SensorFusion()
@@ -53,7 +47,6 @@ def main():
     start_time=time.time()
     try:
         while True:
-            euler_angles=[]
             # Read data from LSM6DSOX
             accel = acc_calibrator.apply_calibration(lsm6dsox.acceleration)
             gyro = gyro_calibrator.apply_calibration(lsm6dsox.gyro)
@@ -61,8 +54,6 @@ def main():
             # Read data from LIS3MDL
             if x + 100 % 100==0:
                 magnetic = lis3mdl.magnetic
-                mag_calibrator.update_calibration(magnetic)
-                mag_calibrator.calculate_offsets()
                 magnetic = mag_calibrator.apply_calibration(magnetic)
                 euler_angles = visualizer.quat_to_euler(sensor_fusing.update(gyro,accel,magnetic))
             else:
@@ -81,9 +72,8 @@ def main():
             x+=1
 
     except KeyboardInterrupt:
-        mag_calibrator.calculate_offsets()
+        print()
         mag_calibrator.print_calibration()
-        gyro_calibrator.calculate_noise()
         gyro_calibrator.print_calibration()
         acc_calibrator.print_calibration()
         print("Exiting program...")

@@ -1,9 +1,37 @@
 import numpy as np
+import csv
 
-class accelerometer_calibrator:
+class AccelerometerCalibrator:
     acc_samples=[]
     def __init__(self):
         self.offsets = [0.0]*3
+
+    def load(self,file):
+        with open(file,'r') as f:
+            rows = csv.reader(f)
+            for row in rows:
+                if row[0]=="acc":
+                    self.offsets[0]=float(row[1])
+                    self.offsets[1]=float(row[2])
+                    self.offsets[2]=float(row[3])
+
+
+    def store(self,file):
+        rows = []
+        with open(file,'r') as f:
+            rows = list(csv.reader(f))
+
+        x=0
+        for row in rows:
+            if row[0]=="acc":
+                rows[x]=["acc"]+self.offsets
+                break
+            x+=1
+        if x == len(rows):
+            rows.append(["acc"]+self.offsets)
+
+        with open(file,'w', newline="") as f:
+            csv.writer(f).writerows(rows)
 
     def update_calibration(self, acc):
         self.acc_samples.append(acc)
