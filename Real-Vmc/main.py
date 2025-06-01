@@ -3,6 +3,7 @@ import usb.util
 import time
 import board
 import busio
+import numpy as np
 from adafruit_lsm6ds import LSM6DSOX
 from adafruit_lsm6ds import Rate as LSM6DSOX_Rate
 from adafruit_lis3mdl import LIS3MDL
@@ -45,6 +46,8 @@ def main():
     sensor_fusing=sensor_fusion.SensorFusion()
     print("start reading data")
     start_time=time.time()
+    q_list=[]
+    q=np.array([1.0, 0.0, 0.0, 0.0])
     try:
         while True:
             # Read data from LSM6DSOX
@@ -52,30 +55,36 @@ def main():
             gyro = gyro_calibrator.apply_calibration(lsm6dsox.gyro)
 
             # Read data from LIS3MDL
-            if x + 10 % 10==0:
+            if x % 10==0:
                 magnetic = lis3mdl.magnetic
                 magnetic = mag_calibrator.apply_calibration(magnetic)
                 q = sensor_fusing.update(gyro,accel,magnetic)
+
             else:
                 q= sensor_fusing.update(gyro, accel)
 
-            euler_angles = visualizer.quat_to_euler(q)
-            print("Euler angles (degrees): Roll {:.2f}, Pitch {:.2f}, Yaw {:.2f}".format(*euler_angles))
-
+            q_list.append(np.copy(q))
+            #euler_angles = visualizer.quat_to_euler(q)
+            #print("Euler angles (degrees): Roll {:.2f}, Pitch {:.2f}, Yaw {:.2f}".format(*euler_angles))
             # Print sensor readings
             #print(f"Acceleration (m/s^2): X={accel[0]:.2f}, Y={accel[1]:.2f}, Z={accel[2]:.2f}")
             #print(f"Gyroscope (rad/s): X={gyro[0]:.2f}, Y={gyro[1]:.2f}, Z={gyro[2]:.2f}")
             #print(f"Magnetic Field (uT): X={magnetic[0]:.2f}, Y={magnetic[1]:.2f}, Z={magnetic[2]:.2f}")
             #print("-" * 50)
 
-            #time.sleep(0.1)
-            x+=1
+            # time.sleep(0.1)
+            x += 1
 
     except KeyboardInterrupt:
-        print()
+        print("\n\rcalibration:")
         mag_calibrator.print_calibration()
         gyro_calibrator.print_calibration()
         acc_calibrator.print_calibration()
+        print("\n\rnoise:")
+        noise=visualizer.calculate_noise(q_list)
+        print("Mean Noise (deg):", noise[0])
+        print("Std Noise (deg):", noise[1])
+
         print("Exiting program...")
         elapsed_time = time.time()-start_time
         print(f"FPS: {x/elapsed_time:.2f} Duration: {elapsed_time:.2f}")

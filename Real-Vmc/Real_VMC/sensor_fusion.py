@@ -18,6 +18,7 @@ class SensorFusion:
             self.filter.frequency = 1.0 / delta_time
 
         try:
+            mag = mag / np.linalg.norm(mag)
             self.q = self.filter.updateMARG(self.q, gyr=gyro, acc=acc, mag=mag)
         except:
             self.q = self.filter.updateIMU(self.q, gyr=gyro, acc=acc)
