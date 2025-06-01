@@ -1,3 +1,5 @@
+import numpy as np
+
 def quat_to_euler(q):
     w, x, y, z = q
     # Roll (x-axis rotation)

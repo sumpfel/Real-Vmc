@@ -53,20 +53,22 @@ def main():
     start_time=time.time()
     try:
         while True:
-
-            # Read data from LIS3MDL
-            magnetic = lis3mdl.magnetic
-            mag_calibrator.update_calibration(magnetic)
-
-            if x+100%100==0:
-                mag_calibrator.calculate_offsets()
-            magnetic = mag_calibrator.apply_calibration(magnetic)
-
+            euler_angles=[]
             # Read data from LSM6DSOX
             accel = acc_calibrator.apply_calibration(lsm6dsox.acceleration)
             gyro = gyro_calibrator.apply_calibration(lsm6dsox.gyro)
 
-            euler_angles = visualizer.quat_to_euler(sensor_fusing.update(gyro,accel,magnetic))
+            # Read data from LIS3MDL
+            if x + 100 % 100==0:
+                magnetic = lis3mdl.magnetic
+                mag_calibrator.update_calibration(magnetic)
+                mag_calibrator.calculate_offsets()
+                magnetic = mag_calibrator.apply_calibration(magnetic)
+                euler_angles = visualizer.quat_to_euler(sensor_fusing.update(gyro,accel,magnetic))
+            else:
+                euler_angles = visualizer.quat_to_euler(sensor_fusing.update(gyro, accel))
+
+
             print("Euler angles (degrees): Roll {:.2f}, Pitch {:.2f}, Yaw {:.2f}".format(*euler_angles))
 
             # Print sensor readings
