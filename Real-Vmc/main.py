@@ -1,3 +1,4 @@
+import asyncio
 import usb
 import usb.util
 import time
@@ -9,9 +10,9 @@ from adafruit_lsm6ds import Rate as LSM6DSOX_Rate
 from adafruit_lis3mdl import LIS3MDL
 from adafruit_lis3mdl import Rate as LIS3MDL_Rate
 
-from Real_VMC import calibrate_magnetometer, calibrate_gyro, calibrate_accelerometer, sensor_fusion, visualizer
+from Real_VMC import calibrate_magnetometer, calibrate_gyro, calibrate_accelerometer, sensor_fusion, visualizer,vmc_connection
 
-def main():
+async def main():
     # Initialize I2C
     i2c = busio.I2C(board.SCL, board.SDA, frequency=400000)
     # Initialize sensors
@@ -42,6 +43,12 @@ def main():
     gyro_calibrator.load("sensor1.csv")
     acc_calibrator.load("sensor1.csv")
 
+    vmc_sender=vmc_connection.VMC_sender()
+    vmc_receiver=vmc_connection.VMC_receiver()
+    connection=vmc_connection.VMC_connection(vmc_sender,vmc_receiver)
+    asyncio.create_task(connection.run())
+
+
     x=0
     sensor_fusing=sensor_fusion.SensorFusion()
     print("start reading data")
@@ -64,18 +71,11 @@ def main():
                 q= sensor_fusing.update(gyro, accel)
 
             q_list.append(np.copy(q))
-            #euler_angles = visualizer.quat_to_euler(q)
-            #print("Euler angles (degrees): Roll {:.2f}, Pitch {:.2f}, Yaw {:.2f}".format(*euler_angles))
-            # Print sensor readings
-            #print(f"Acceleration (m/s^2): X={accel[0]:.2f}, Y={accel[1]:.2f}, Z={accel[2]:.2f}")
-            #print(f"Gyroscope (rad/s): X={gyro[0]:.2f}, Y={gyro[1]:.2f}, Z={gyro[2]:.2f}")
-            #print(f"Magnetic Field (uT): X={magnetic[0]:.2f}, Y={magnetic[1]:.2f}, Z={magnetic[2]:.2f}")
-            #print("-" * 50)
-
-            # time.sleep(0.1)
+            await vmc_sender.send_bone("LeftArm",q)
             x += 1
 
     except KeyboardInterrupt:
+        connection.stop()
         print("\n\rcalibration:")
         mag_calibrator.print_calibration()
         gyro_calibrator.print_calibration()
@@ -91,4 +91,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())
