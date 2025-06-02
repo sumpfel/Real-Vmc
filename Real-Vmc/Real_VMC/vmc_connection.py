@@ -33,29 +33,31 @@ class VMCForwarder:
         # Filter bone messages
         if address.startswith("/VMC/Ext/Bone/"):
             if args and args[0] in self.exclude_bones:
-                print(f"Excluded bone {args[0]} - skipping forwarding.")
+                #print(f"Excluded bone {args[0]} - skipping forwarding.")
                 return
 
         # Filter blend shape messages
         if address == "/VMC/Ext/Blend/Val":
             if args and args[0] in self.exclude_blendshapes:
-                print(f"Excluded blend shape {args[0]} - skipping forwarding.")
+                #print(f"Excluded blend shape {args[0]} - skipping forwarding.")
                 return
 
-        print(f"Forwarding {address} with args {args}")
+        #print(f"Forwarding {address} with args {args}")
         self.client.send_message(address, args)
 
-    def send_bone_position_rotation(self, bone_name, xyz, rxryrzrw):
-        address = "/VMC/Ext/Bone/Pos"
-        args = [bone_name]+xyz+rxryrzrw
-        print(f"Sending bone: {address} {args}")
-        self.client.send_message(address, args)
+    def send_bone_position_rotation(self, bone_name, x,y,z, rx,ry,rz,rw):
+        #print(f"Sending bone: {address} {args}")
+        self.client.send_message("/VMC/Ext/Bone/Pos", [bone_name,x ,y ,z ,rx,ry,rz,rw])
+
+    def send_bone_rotation(self,bone_name, rotation):
+        #print(f"Sending bone: {address} {args}")
+        self.client.send_message("/VMC/Ext/Bone/Pos", [bone_name, 0.0, 0.0, 0.0, *rotation])
 
     def send_blendshape_value(self, blendshape_name, value):
 
         address = "/VMC/Ext/Blend/Val"
         args = [blendshape_name, value]
-        print(f"Sending blend shape: {address} {args}")
+        #print(f"Sending blend shape: {address} {args}")
         self.client.send_message(address, args)
 
     def start(self):
@@ -95,21 +97,21 @@ if __name__ == "__main__":
             # Test sending bone messages
             forwarder.send_bone_position_rotation(
                 "LeftLowerArm",
-                [0, 0, 0],
-                [0, .5, 1, 0]
+                0, 0, 0,
+                0, .5, 1, 1
             )  # Should forward even though it's in the exclude list (since this is an explicit send)
 
             forwarder.send_bone_position_rotation(
                 "LeftHand",
-                [0, 0, 0],
-                [0, 1, .5, 1]
+                0, 0, 0,
+                0, 1, .5, 1
             )  # Should forward even though it's excluded
 
             # Test sending blend shape messages
-            forwarder.send_blendshape_value("Happy", 0.85)  # Should forward
-            forwarder.send_blendshape_value("Smile", 1.0)  # Should forward even though excluded
+            #forwarder.send_blendshape_value("Happy", 0.85)  # Should forward
+            forwarder.send_blendshape_value("A", 100.0)  # Should forward even though excluded
 
-            time.sleep(0.1)
+            #time.sleep()
     except KeyboardInterrupt:
         forwarder.shutdown()
         print("exiting..")

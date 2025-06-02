@@ -1,23 +1,20 @@
-from pythonosc import dispatcher
-from pythonosc import osc_server
-import socket
+from pythonosc.dispatcher import Dispatcher
+from pythonosc.osc_server import BlockingOSCUDPServer
 
-def bone_handler(address, *args):
-    print(f"Received {address} with args {args}")
+def print_message(address, *args):
+    print(f"Received message on {address} with arguments {args}")
 
-class ReusableOSCUDPServer(osc_server.ThreadingOSCUDPServer):
-    def server_bind(self):
-        self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        self.socket.bind(self.server_address)
+def main():
+    port = 39539
+    dispatcher = Dispatcher()
+    dispatcher.set_default_handler(print_message)
+
+    server = BlockingOSCUDPServer(("0.0.0.0", port), dispatcher)
+    print(f"Serving on port {port}...")
+    server.serve_forever()
 
 if __name__ == "__main__":
-    ip = "0.0.0.0"  # Listen on all interfaces
-    port = 39541
+    main()
 
-    disp = dispatcher.Dispatcher()
-    disp.map("/VMC/Ext/Bone/Pos", bone_handler)
-
-    server = ReusableOSCUDPServer((ip, port), disp)
-    print(f"Listening for OSC on {ip}:{port}")
-
-    server.serve_forever()
+#Received message on /VMC/Ext/Bone/Pos with arguments ('LeftLowerArm', 0, 0, 0, 0, 0.5, 1, 0)
+#Received message on /VMC/Ext/Bone/Pos with arguments ('UpperChest', 6.390109774656594e-09, 0.1112809032201767, -0.012233471497893333, 0.0, -0.0036369371227920055, 0.009779175743460655, 0.9999455809593201)

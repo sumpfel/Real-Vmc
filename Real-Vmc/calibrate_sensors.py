@@ -40,12 +40,15 @@ def main():
     print()
     input("Press enter to continue and start rotating sensor until the numbers stop changing\n\rexit with cntr-c")
 
+    x=1
     try:
         while True:
             magnetic = lis3mdl.magnetic
             mag_calibrator.update_calibration(magnetic)
-            mag_calibrator.print_min_max()
-            time.sleep(.1)
+            if x%30==0:
+                mag_calibrator.print_min_max()
+            # time.sleep(.1)
+            x+=1
 
     except KeyboardInterrupt:
         print()

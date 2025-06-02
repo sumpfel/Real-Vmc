@@ -9,6 +9,8 @@ class SensorFusion:
         self.q = np.array([1.0, 0.0, 0.0, 0.0])
         self.last_time = time.time()
 
+        self.axes_names = ['x', 'y', 'z']
+
     def update(self, gyro, acc, mag=None):
         current_time = time.time()
         delta_time = current_time - self.last_time
@@ -24,3 +26,13 @@ class SensorFusion:
             self.q = self.filter.updateIMU(self.q, gyr=gyro, acc=acc)
 
         return self.q
+
+def transform_axes(array, transform):
+    result = np.zeros(4)
+    axis_indices = {"x": 0, "y": 1, "z": 2, "w": 3}
+
+    for old_axis, (new_axis, direction) in transform.items():
+        result[axis_indices[new_axis]] = array[axis_indices[old_axis]] * direction
+
+    result[3] = array[3]  # Keep w unchanged
+    return result

@@ -1,4 +1,3 @@
-import asyncio
 import usb
 import usb.util
 import time
@@ -9,10 +8,11 @@ from adafruit_lsm6ds import LSM6DSOX
 from adafruit_lsm6ds import Rate as LSM6DSOX_Rate
 from adafruit_lis3mdl import LIS3MDL
 from adafruit_lis3mdl import Rate as LIS3MDL_Rate
+import threading
 
 from Real_VMC import calibrate_magnetometer, calibrate_gyro, calibrate_accelerometer, sensor_fusion, visualizer,vmc_connection
 
-async def main():
+def main():
     # Initialize I2C
     i2c = busio.I2C(board.SCL, board.SDA, frequency=400000)
     # Initialize sensors
@@ -43,10 +43,21 @@ async def main():
     gyro_calibrator.load("sensor1.csv")
     acc_calibrator.load("sensor1.csv")
 
-    vmc_sender=vmc_connection.VMC_sender()
-    vmc_receiver=vmc_connection.VMC_receiver()
-    connection=vmc_connection.VMC_connection(vmc_sender,vmc_receiver)
-    asyncio.create_task(connection.run())
+    change_axes={
+    "x": ("z", 1),
+    "y": ("y", 1),
+    "z": ("x", 1)
+}
+
+    exclude_bones = ['RightLowerArm', 'RightUpperArm', 'RightHand']
+    exclude_blendshapes =[] #['Blink', 'Smile']
+    forwarder = vmc_connection.VMCForwarder(exclude_bones=exclude_bones, exclude_blendshapes=exclude_blendshapes)
+
+    def run_forwarder():
+        forwarder.start()
+
+    forwarder_thread = threading.Thread(target=run_forwarder, daemon=True)
+    forwarder_thread.start()
 
 
     x=0
@@ -70,12 +81,13 @@ async def main():
             else:
                 q= sensor_fusing.update(gyro, accel)
 
+            q = sensor_fusion.transform_axes(q,change_axes)
             q_list.append(np.copy(q))
-            await vmc_sender.send_bone("LeftArm",q)
+            forwarder.send_bone_rotation("RightUpperArm",q)
             x += 1
 
     except KeyboardInterrupt:
-        connection.stop()
+        forwarder.shutdown()
         print("\n\rcalibration:")
         mag_calibrator.print_calibration()
         gyro_calibrator.print_calibration()
@@ -91,4 +103,4 @@ async def main():
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    main()
