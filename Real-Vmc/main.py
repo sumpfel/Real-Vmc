@@ -71,10 +71,10 @@ def main():
     change_axes={
     "x": ("x", 1),
     "y": ("z", 1),
-    "z": ("y", 1)
+    "z": ("y", -1)
 }
 
-    exclude_bones = ['RightLowerArm', 'RightUpperArm', 'RightHand']
+    exclude_bones = ["Head"]#['RightLowerArm', 'RightUpperArm', 'RightHand',"LeftUpperLeg","LeftLowerLeg"]
     exclude_blendshapes =[] #['Blink', 'Smile']
     forwarder = vmc_connection.VMCForwarder(exclude_bones=exclude_bones, exclude_blendshapes=exclude_blendshapes)
 
@@ -87,23 +87,33 @@ def main():
 
     x=0
     sensor_fusing=sensor_fusion.AbsoluteRotation()
+
+    time.sleep(1)
     print("start reading data")
     start_time=time.time()
-    q_list=[]
+
+
+    #update_time=time.time()
     q=np.array([1.0, 0.0, 0.0, 0.0])
+    q_list=[]
     try:
         while True:
             q = sensor_fusing.update(acc, mag)
 
             q = sensor_fusion.transform_axes(q,change_axes)
-            #q_list.append(np.copy(q))
-            forwarder.send_bone_rotation("RightUpperArm",q)
+            q_list.append(np.copy(q))
+            q = sensor_fusion.smooth_rotation(q_list,500)
+
+            forwarder.send_bone_rotation("Head",q)
+            #forwarder.send_bone_rotation("LeftUpperLeg",q)
             #visualizer.print_rotation_in_degrees(q)
             #print(f"gyro: {np.round(gyro, 1)}, acc: {np.round(acc, 1)}, mag: {np.round(mag, 1)}")
-            angles=visualizer.quat_to_euler(q)
-            print(f"Roll: {angles[0]:8.2f}°, Pitch: {angles[1]:8.2f}°, Yaw: {angles[2]:8.2f}°")
+            #angles=visualizer.quat_to_euler(q)
+            #print(f"Roll: {angles[0]:8.2f}°, Pitch: {angles[1]:8.2f}°, Yaw: {angles[2]:8.2f}°")
             x += 1
-            #time.sleep(.5)
+            #print(q)
+            #print(f"{1/(time.time()-update_time):.3f}")
+            #update_time = time.time()
 
     except KeyboardInterrupt:
         forwarder.shutdown()
@@ -111,10 +121,10 @@ def main():
         mag_calibrator.print_calibration()
         gyro_calibrator.print_calibration()
         acc_calibrator.print_calibration()
-        print("\n\rnoise:")
-        noise=visualizer.calculate_noise(q_list)
-        print("Mean Noise (deg):", noise[0])
-        print("Std Noise (deg):", noise[1])
+        #print("\n\rnoise:")
+        #noise=visualizer.calculate_noise(q_list)
+        #print("Mean Noise (deg):", noise[0])
+        #print("Std Noise (deg):", noise[1])
 
         print("Exiting program...")
         elapsed_time = time.time()-start_time

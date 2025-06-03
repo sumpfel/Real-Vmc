@@ -78,3 +78,11 @@ def transform_axes(array, transform):
 
     result[3] = array[3]  # Keep w unchanged
     return result
+
+def smooth_rotation(q_list,amount):
+    x = len(q_list)
+    if amount > x:
+        return q_list[x-1]
+
+    qs = np.array(q_list[-amount:])
+    return np.mean(qs, axis=0)
