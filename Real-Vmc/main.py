@@ -10,7 +10,7 @@ from adafruit_lis3mdl import LIS3MDL
 from adafruit_lis3mdl import Rate as LIS3MDL_Rate
 import threading
 
-from Real_VMC import calibrate_magnetometer, calibrate_gyro, calibrate_accelerometer, sensor_fusion, visualizer,vmc_connection
+from Real_VMC import calibrate_magnetometer, calibrate_gyroscope, calibrate_accelerometer, sensor_fusion, visualizer,vmc_connection
 
 def main():
     # Initialize I2C
@@ -36,17 +36,42 @@ def main():
 
 
     mag_calibrator=calibrate_magnetometer.MagnetometerCalibrator()
-    gyro_calibrator=calibrate_gyro.GyroCalibrator()
+    gyro_calibrator=calibrate_gyroscope.GyroCalibrator()
     acc_calibrator=calibrate_accelerometer.AccelerometerCalibrator()
 
     mag_calibrator.load("sensor1.csv")
     gyro_calibrator.load("sensor1.csv")
     acc_calibrator.load("sensor1.csv")
 
+    global mag_, gyro_, acc_, mag, gyro, acc
+
+    mag = [0.0, 0.0, 0.0]
+    gyro = [0.0, 0.0, 0.0]
+    acc = [0.0, 0.0, 0.0]
+
+    # Locks for thread synchronization
+    acc_lock = threading.Lock()
+    gyro_lock = threading.Lock()
+    mag_lock = threading.Lock()
+
+    # Thread functions
+    def read_sensors():
+        global acc,mag,gyro
+        while True:
+            with acc_lock:
+                acc = acc_calibrator.apply_calibration(lsm6dsox.acceleration)
+                #gyro = gyro_calibrator.apply_calibration(lsm6dsox.gyro)
+                mag = mag_calibrator.apply_calibration(lis3mdl.magnetic)
+
+    # Start threads
+    thread_r_a = threading.Thread(target=read_sensors, daemon=True)
+    thread_r_a.start()
+
+
     change_axes={
-    "x": ("z", 1),
-    "y": ("y", 1),
-    "z": ("x", 1)
+    "x": ("x", 1),
+    "y": ("z", 1),
+    "z": ("y", 1)
 }
 
     exclude_bones = ['RightLowerArm', 'RightUpperArm', 'RightHand']
@@ -61,30 +86,24 @@ def main():
 
 
     x=0
-    sensor_fusing=sensor_fusion.SensorFusion()
+    sensor_fusing=sensor_fusion.AbsoluteRotation()
     print("start reading data")
     start_time=time.time()
     q_list=[]
     q=np.array([1.0, 0.0, 0.0, 0.0])
     try:
         while True:
-            # Read data from LSM6DSOX
-            accel = acc_calibrator.apply_calibration(lsm6dsox.acceleration)
-            gyro = gyro_calibrator.apply_calibration(lsm6dsox.gyro)
-
-            # Read data from LIS3MDL
-            if x % 10==0:
-                magnetic = lis3mdl.magnetic
-                magnetic = mag_calibrator.apply_calibration(magnetic)
-                q = sensor_fusing.update(gyro,accel,magnetic)
-
-            else:
-                q= sensor_fusing.update(gyro, accel)
+            q = sensor_fusing.update(acc, mag)
 
             q = sensor_fusion.transform_axes(q,change_axes)
-            q_list.append(np.copy(q))
+            #q_list.append(np.copy(q))
             forwarder.send_bone_rotation("RightUpperArm",q)
+            #visualizer.print_rotation_in_degrees(q)
+            #print(f"gyro: {np.round(gyro, 1)}, acc: {np.round(acc, 1)}, mag: {np.round(mag, 1)}")
+            angles=visualizer.quat_to_euler(q)
+            print(f"Roll: {angles[0]:8.2f}°, Pitch: {angles[1]:8.2f}°, Yaw: {angles[2]:8.2f}°")
             x += 1
+            #time.sleep(.5)
 
     except KeyboardInterrupt:
         forwarder.shutdown()

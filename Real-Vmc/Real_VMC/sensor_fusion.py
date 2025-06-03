@@ -1,6 +1,7 @@
 import numpy as np
 from ahrs.filters import Madgwick
 import time
+from scipy.spatial.transform import Rotation as R
 
 class SensorFusion:
     def __init__(self):
@@ -26,6 +27,47 @@ class SensorFusion:
             self.q = self.filter.updateIMU(self.q, gyr=gyro, acc=acc)
 
         return self.q
+
+
+class AbsoluteRotation:
+    def __init__(self):
+        # Initialize the absolute rotation quaternion
+        self.q = np.array([1.0, 0.0, 0.0, 0.0])  # Identity quaternion
+
+    def normalize_vector(self, vector):
+        norm = np.linalg.norm(vector)
+        return vector / norm if norm > 0 else vector
+
+    def calculate_rotation(self, acc, mag):
+        # Normalize accelerometer and magnetometer readings
+        acc = self.normalize_vector(acc)
+        mag = self.normalize_vector(mag)
+
+        # Compute gravity direction from accelerometer (Z-axis)
+        z_axis = acc
+
+        # Compute east direction (X-axis) as cross product of mag and gravity
+        east = np.cross(mag, z_axis)
+        east = self.normalize_vector(east)
+
+        # Compute north direction (Y-axis) as cross product of gravity and east
+        north = np.cross(z_axis, east)
+
+        # Construct rotation matrix from axes
+        rotation_matrix = np.vstack([east, north, z_axis]).T
+
+        # Convert rotation matrix to quaternion
+        rotation = R.from_matrix(rotation_matrix)
+        self.q = rotation.as_quat()
+
+        return self.q
+
+    def update(self, acc, mag):
+        try:
+            return self.calculate_rotation(acc, mag)
+        except Exception as e:
+            print(f"Error calculating rotation: {e}")
+            return np.array([0.0]*4)
 
 def transform_axes(array, transform):
     result = np.zeros(4)

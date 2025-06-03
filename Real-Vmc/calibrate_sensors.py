@@ -6,7 +6,7 @@ from adafruit_lsm6ds import Rate as LSM6DSOX_Rate
 from adafruit_lis3mdl import LIS3MDL
 from adafruit_lis3mdl import Rate as LIS3MDL_Rate
 
-from Real_VMC import calibrate_magnetometer, calibrate_gyro, calibrate_accelerometer
+from Real_VMC import calibrate_magnetometer, calibrate_gyroscope, calibrate_accelerometer
 
 def main():
     i2c = busio.I2C(board.SCL, board.SDA, frequency=400000)

@@ -5,7 +5,7 @@ from adafruit_lsm6ds import LSM6DSOX, Rate as LSM6DSOX_Rate
 from adafruit_lsm6ds import AccelRange, GyroRange
 from adafruit_lis3mdl import LIS3MDL, Rate as LIS3MDL_Rate, Range as LIS3MDL_Range
 
-from Real_VMC import calibrate_magnetometer, calibrate_gyro, calibrate_accelerometer
+from Real_VMC import calibrate_magnetometer, calibrate_gyroscope, calibrate_accelerometer
 
 def main():
     # Initialize I2C
