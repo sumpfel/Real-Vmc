@@ -8,6 +8,8 @@ from adafruit_lis3mdl import Rate as LIS3MDL_Rate
 
 from Real_VMC import calibrate_magnetometer, calibrate_gyroscope, calibrate_accelerometer
 
+calibration_file = "sensor2.csv"
+
 def main():
     i2c = busio.I2C(board.SCL, board.SDA, frequency=400000)
 
@@ -20,22 +22,22 @@ def main():
 
 
     mag_calibrator=calibrate_magnetometer.MagnetometerCalibrator()
-    gyro_calibrator=calibrate_gyro.GyroCalibrator()
+    gyro_calibrator=calibrate_gyroscope.GyroCalibrator()
     acc_calibrator=calibrate_accelerometer.AccelerometerCalibrator()
 
-    for i in range(100):
+    for i in range(200):
         acc_calibrator.update_calibration(lsm6dsox.acceleration)
         gyro_calibrator.update_calibration(lsm6dsox.gyro)
         time.sleep(0.1)
 
     acc_calibrator.calculate_offsets()
     acc_calibrator.print_calibration()
-    acc_calibrator.store("sensor1.csv")
+    acc_calibrator.store(calibration_file)
 
     gyro_calibrator.calculate_bias()
     gyro_calibrator.calculate_noise()
     gyro_calibrator.print_calibration()
-    gyro_calibrator.store("sensor1.csv")
+    gyro_calibrator.store(calibration_file)
 
     print()
     input("Press enter to continue and start rotating sensor until the numbers stop changing\n\rexit with cntr-c")
@@ -54,7 +56,7 @@ def main():
         print()
         mag_calibrator.calculate_offsets()
         mag_calibrator.print_calibration()
-        mag_calibrator.store("sensor1.csv")
+        mag_calibrator.store(calibration_file)
 
         print("\n\rExiting program...")
 

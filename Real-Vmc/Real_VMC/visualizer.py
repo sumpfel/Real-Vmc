@@ -49,14 +49,3 @@ def calculate_noise(q_list):
     std_noise = np.std(angular_differences)
 
     return mean_noise, std_noise
-
-def print_rotation_in_degrees(rotation_array):
-    x, y, z, w = rotation_array
-
-    # Convert to degrees
-    x_deg = np.degrees(x)
-    y_deg = np.degrees(y)
-    z_deg = np.degrees(z)
-
-    # Print in the desired format
-    print(f"{x_deg:.2f} {y_deg:.2f} {z_deg:.2f} {w:.2f}")

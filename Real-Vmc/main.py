@@ -39,40 +39,59 @@ def main():
     gyro_calibrator=calibrate_gyroscope.GyroCalibrator()
     acc_calibrator=calibrate_accelerometer.AccelerometerCalibrator()
 
-    mag_calibrator.load("sensor1.csv")
-    gyro_calibrator.load("sensor1.csv")
-    acc_calibrator.load("sensor1.csv")
+    calibration_file = "sensor2.csv"
+
+    mag_calibrator.load(calibration_file)
+    gyro_calibrator.load(calibration_file)
+    acc_calibrator.load(calibration_file)
 
     global mag_, gyro_, acc_, mag, gyro, acc
+
+    mag_ = [0.0, 0.0, 0.0]
+    gyro_ = [0.0, 0.0, 0.0]
+    acc_ = [0.0, 0.0, 0.0]
 
     mag = [0.0, 0.0, 0.0]
     gyro = [0.0, 0.0, 0.0]
     acc = [0.0, 0.0, 0.0]
 
-    # Locks for thread synchronization
-    acc_lock = threading.Lock()
-    gyro_lock = threading.Lock()
-    mag_lock = threading.Lock()
 
-    # Thread functions
+    # def read_sensors():
+    #     global acc_, mag_, gyro_
+    #     print("start reading sensors...")
+    #     while True:
+    #         acc_ = lsm6dsox.acceleration
+    #         #gyro_ = lsm6dsox.gyro
+    #         mag_ = lis3mdl.magnetic
+    #
+    # def calibrate_sensors():
+    #     global mag_, gyro_, acc_, mag, gyro, acc
+    #     print("start calibrating sensors...")
+    #     while True:
+    #         acc = acc_calibrator.apply_calibration(acc_)
+    #         mag = mag_calibrator.apply_calibration(mag_)
+    #         #gyro = gyro_calibrator.apply_calibration(gyro_)
+
+    # thread_c_s = threading.Thread(target=calibrate_sensors, daemon=True)
+    # thread_c_s.start()
+
     def read_sensors():
-        global acc,mag,gyro
+        global acc, mag, gyro
+        print("start reading & calibrating sensors...")
         while True:
-            with acc_lock:
-                acc = acc_calibrator.apply_calibration(lsm6dsox.acceleration)
-                #gyro = gyro_calibrator.apply_calibration(lsm6dsox.gyro)
-                mag = mag_calibrator.apply_calibration(lis3mdl.magnetic)
+            acc = acc_calibrator.apply_calibration(lsm6dsox.acceleration)
+            gyro = gyro_calibrator.apply_calibration(lsm6dsox.gyro)
+            mag = mag_calibrator.apply_calibration(lis3mdl.magnetic)
 
-    # Start threads
-    thread_r_a = threading.Thread(target=read_sensors, daemon=True)
-    thread_r_a.start()
+    thread_r_s = threading.Thread(target=read_sensors, daemon=True)
+    thread_r_s.start()
 
 
-    change_axes={
-    "x": ("x", 1),
-    "y": ("z", 1),
-    "z": ("y", -1)
-}
+    change_axes = {
+        "x": ("x", 1),
+        "y": ("z", 1),
+        "z": ("y", -1)
+    }
 
     exclude_bones = ["Head"]#['RightLowerArm', 'RightUpperArm', 'RightHand',"LeftUpperLeg","LeftLowerLeg"]
     exclude_blendshapes =[] #['Blink', 'Smile']
@@ -85,50 +104,47 @@ def main():
     forwarder_thread.start()
 
 
-    x=0
-    sensor_fusing=sensor_fusion.AbsoluteRotation()
+    sensor_fusing=sensor_fusion.SimpleFusion(smooth=0)
+    #q=np.array([1.0, 0.0, 0.0, 0.0])
+    #q_list=[]
+    loop_count = 0
 
     time.sleep(1)
-    print("start reading data")
+
+    print("start sending...")
+
     start_time=time.time()
-
-
-    #update_time=time.time()
-    q=np.array([1.0, 0.0, 0.0, 0.0])
-    q_list=[]
     try:
         while True:
-            q = sensor_fusing.update(acc, mag)
+            loop_count += 1
+            e = sensor_fusing.update(acc,gyro,mag)
+            #q = sensor_fusion.transform_axes(q,change_axes)
+            #q_list.append(np.copy(q))
+            #q = sensor_fusion.smooth_rotation(q_list,500)
+            #print("q:",q)
 
-            q = sensor_fusion.transform_axes(q,change_axes)
-            q_list.append(np.copy(q))
-            q = sensor_fusion.smooth_rotation(q_list,500)
-
-            forwarder.send_bone_rotation("Head",q)
-            #forwarder.send_bone_rotation("LeftUpperLeg",q)
-            #visualizer.print_rotation_in_degrees(q)
+            #forwarder.send_bone_rotation("Head",q)
             #print(f"gyro: {np.round(gyro, 1)}, acc: {np.round(acc, 1)}, mag: {np.round(mag, 1)}")
             #angles=visualizer.quat_to_euler(q)
-            #print(f"Roll: {angles[0]:8.2f}°, Pitch: {angles[1]:8.2f}°, Yaw: {angles[2]:8.2f}°")
-            x += 1
-            #print(q)
-            #print(f"{1/(time.time()-update_time):.3f}")
-            #update_time = time.time()
+            angles=np.rad2deg(e)
+            print(f"Roll: {angles[0]:8.2f}°, Pitch: {angles[1]:8.2f}°, Yaw: {angles[2]:8.2f}°")
 
     except KeyboardInterrupt:
         forwarder.shutdown()
+
         print("\n\rcalibration:")
         mag_calibrator.print_calibration()
         gyro_calibrator.print_calibration()
         acc_calibrator.print_calibration()
-        #print("\n\rnoise:")
+
+        #print("\n\rnoise:") #if not rotating sensor this should be as close to 0 as possible if not calibrate your sensors.
         #noise=visualizer.calculate_noise(q_list)
         #print("Mean Noise (deg):", noise[0])
         #print("Std Noise (deg):", noise[1])
 
-        print("Exiting program...")
+        print("\n\rExiting program...")
         elapsed_time = time.time()-start_time
-        print(f"FPS: {x/elapsed_time:.2f} Duration: {elapsed_time:.2f}")
+        print(f"VMC Messages sent/s: {loop_count/elapsed_time:.2f} Duration: {elapsed_time:.2f}")
 
 
 if __name__ == "__main__":
