@@ -79,10 +79,10 @@ class SimpleFusion():
                 acc = smooth_rotation(self.acc_readings, self.smooth)
 
             acc_n = acc/np.linalg.norm(acc)
-            print("acc:",acc_n)
+            #print("acc:",acc_n)
             self.rotation[0] = math.atan2(acc_n[1], acc_n[2])
             self.rotation[1] = math.atan2(-acc_n[0], math.sqrt(acc_n[1] ** 2 + acc_n[2] ** 2))
-            print("rot:",self.rotation)
+            #print("rot:",self.rotation)
 
         if mag is not None:
             mag= np.array(mag)
